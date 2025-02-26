@@ -16,24 +16,22 @@ process SETUP {
     
     script:
     """
- 
+    # Other callers are installed using conda, see environment.yaml file
+    #
     # Install Sniffles
-    wget https://github.com/fritzsedlazeck/Sniffles/archive/refs/tags/v2.4.tar.gz
-    tar -xvf v2.4.tar.gz && rm v2.4.tar.gz
-    cd Sniffles && python setup.py install && cd ../
+    # wget https://github.com/fritzsedlazeck/Sniffles/archive/refs/tags/v2.6.0.tar.gz
+    # tar -xvf v2.6.0.tar.gz && rm v2.6.0.tar.gz
+    # cd Sniffles && python setup.py install && cd ../
     
     # Install Sawfish
-    wget https://github.com/PacificBiosciences/sawfish/releases/download/v0.12.7/sawfish-v0.12.7-x86_64-unknown-linux-gnu.tar.gz
-    tar -xvf sawfish-v0.12.7-x86_64-unknown-linux-gnu.tar.gz
-    mv sawfish-v0.12.7-x86_64-unknown-linux-gnu/bin/sawfish .
+    wget https://github.com/PacificBiosciences/sawfish/releases/download/v0.12.9/sawfish-v0.12.9-x86_64-unknown-linux-gnu.tar.gz
+    tar -xvf sawfish-v0.12.9-x86_64-unknown-linux-gnu.tar.gz
+    mv sawfish-v0.12.9-x86_64-unknown-linux-gnu/bin/sawfish .
 
     # Install Delly
-    wget https://github.com/dellytools/delly/releases/download/v1.3.1/delly_v1.3.1_linux_x86_64bit
-    mv delly_v1.3.1_linux_x86_64bit delly && chmod +x delly
+    wget https://github.com/dellytools/delly/releases/download/v1.3.3/delly_v1.3.3_linux_x86_64bit
+    mv delly_v1.3.3_linux_x86_64bit delly && chmod +x delly
     
-    # Install NGSEP
-    wget https://github.com/NGSEP/NGSEPcore/releases/download/v5.0.0/NGSEPcore_5.0.0.jar
-   
     # Capture versions
     dysgu_ver=\$(dysgu --version | cut -f3 -d ' ')
     sniffles_ver=\$(sniffles --version | cut -f3 -d ' ')
@@ -49,7 +47,7 @@ process SETUP {
         "cutesv": "\$cutesv_ver",
         "severus": "\$severus_ver",
         "sawfish": "\$sawfish_ver",
-        "delly": "1.3.1"
+        "delly": "1.3.3"
     }
 EOF
     """
@@ -321,7 +319,7 @@ process BENCHMARK {
                     ${bench_params} \
                     -o truvari_GIAB_\${tech}_\${caller_name}
 
-        truvari refine -a wfa -R -U -f ${ref} \
+        truvari refine -a wfa -f ${ref} \
                     --regions truvari_GIAB_\${tech}_\${caller_name}/candidate.refine.bed \
                     truvari_GIAB_\${tech}_\${caller_name}/
    

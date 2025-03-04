@@ -29,6 +29,7 @@ This is a reproducible benchmark of structural variants for two benchmark datase
 For benchmarking [truvari v5.2](https://github.com/ACEnglish/truvari) was used.
 
 ## Results
+
 ![plot](./benchmark_result.GIAB.png)
 
 

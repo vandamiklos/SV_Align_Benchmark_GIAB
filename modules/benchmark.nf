@@ -1,9 +1,11 @@
+#!/usr/bin/env nextflow
 process BENCHMARK {
+
     publishDir "${params.outdir}/benchmarks", mode: 'copy'
 
     input:
+    tuple val(sample), val(aligner), val(caller), path(vcf)
     path ref
-    path sv_call_vcfs
     path truth_vcf
     path truth_idx
     path truth_bed
@@ -11,13 +13,16 @@ process BENCHMARK {
     val bench_params
 
     output:
-    path "truv_output/*"
+    tuple val(sample), val(aligner), val(caller), path("truv_output")
 
     script:
     """
     mkdir -p truv_output
-    for vcf in ${sv_call_vcfs.join(' ')}; do
-        truvari bench -f ${ref} -b ${truth_vcf} -c \$vcf -o truv_output/$(basename \$vcf .vcf) ${bench_params}
-    done
+    truvari bench \
+        -f ${ref} \
+        -b ${truth_vcf} \
+        -c ${vcf} \
+        -o truv_output \
+        ${bench_params}
     """
 }

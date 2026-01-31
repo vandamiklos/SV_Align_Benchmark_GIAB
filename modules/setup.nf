@@ -1,3 +1,4 @@
+#!/usr/bin/env nextflow
 process SETUP {
     publishDir params.outdir, mode: 'symlink'
     conda "$projectDir/environment.yml"
@@ -28,6 +29,40 @@ process SETUP {
         "cutesv": "\$cutesv_ver",
         "sawfish": "\$sawfish_ver",
         "delly": "1.3.3"
+    }
+EOF
+    """
+}
+
+
+
+// chatgpt
+process SETUP {
+
+    tag "setup"
+
+    input:
+    path ref
+
+    output:
+    path "sq_lines.txt", emit: sq_lines
+    path "versions.json", emit: versions
+
+    script:
+    """
+    # Extract @SQ lines from reference
+    samtools faidx $ref
+    samtools view -H $ref.fai | grep '^@SQ' > sq_lines.txt
+
+    # Collect versions (robust)
+    cat <<- EOF > versions.json
+    {
+        "samtools": "$(samtools --version | head -n1 | awk '{print $2}')",
+        "sniffles": "$(sniffles --version 2>/dev/null | awk '{print $NF}')",
+        "cutesv": "$(cuteSV --version 2>/dev/null | awk '{print $NF}')",
+        "dysgu": "$(dysgu --version 2>/dev/null | awk '{print $NF}')",
+        "delly": "$(delly 2>&1 | grep Version | awk '{print $2}')",
+        "sawfish": "$(sawfish --version 2>/dev/null | awk '{print $NF}')"
     }
 EOF
     """

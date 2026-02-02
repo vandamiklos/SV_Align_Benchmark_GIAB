@@ -1,10 +1,7 @@
 # :bar_chart: Long-read SV Benchmark CMRG/GIAB
 
-This is a reproducible benchmark of structural variants for two benchmark datasets:
-- Challenging Medically Relevant Genes. The truth set is described in detail here: [Curated variation benchmarks for challenging medically relevant autosomal genes. Wagner et al., 2022. Nature Biotechnology](https://www.nature.com/articles/s41587-021-01158-1)
-
-
-- The Genome In A Bottle (GIAB) truthset v1.1 is also assessed. [GIAB](https://www.nist.gov/programs-projects/genome-bottle)
+This is a reproducible alignment and benchmark of structural variants for the GIAB benchmark datasets:
+- The Genome In A Bottle (GIAB) truthset v1.1 is assessed. [GIAB](https://www.nist.gov/programs-projects/genome-bottle)
 
 
 ## Requirements
@@ -15,13 +12,21 @@ This is a reproducible benchmark of structural variants for two benchmark datase
 
 ## Reads
 
-- ONT reads (~40X coverage) 'Kit14' run, aligned using minimap2 to GRCh38
-- PacBio Vega HiFi (~30X coverage), aligned using pbmm2 to GRCh38 and phased using hiphase (some callers make use of the HP and PS bam tags)
+- ONT reads (~40X coverage) 'Kit14'
+- PacBio Vega HiFi (~30X coverage)
+
+## Aligners
+- minimap2
+- bwa-mem
+- last
+- ngmlr
+- vacmap
+- mmbwa
+
 
 ## Callers
 - [sniffles](https://github.com/fritzsedlazeck/Sniffles)
 - [cuteSV](https://github.com/tjiangHIT/cuteSV)
-- [severus](https://github.com/KolmogorovLab/Severus)
 - [delly](https://github.com/dellytools/delly)
 - [sawfish](https://github.com/PacificBiosciences/sawfish)
 - [dysgu](https://github.com/kcleal/dysgu)
@@ -78,9 +83,6 @@ nextflow main.nf
 ## Notes
 
 Truvari refine was used on the GIAB benchmark. For the CMRG benchmark, refine was not run as most vcfs triggered errors using this step.
-
-For Severus, a script was used to convert the BND-notation of deletions to symbolic DEL calls.
-See `convert_severus.py` for details. 
 
 Truvari parameters were:
     

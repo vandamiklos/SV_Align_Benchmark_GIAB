@@ -6,7 +6,7 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { SETUP } from './modules/setup.nf'
+/* include { SETUP } from './modules/setup.nf' */
 include { RUN_BWA
           RUN_MINIMAP2
           RUN_LAST
@@ -33,17 +33,17 @@ include { PLOT_RESULTS } from './modules/plot.nf'
 
 params.platform     = "ont"
 params.threads      = 16
-params.outdir       = "results"
-params.input_reads  = "reads/*.fq"
-params.ref          = "ref/chm13v2.0.fa"
-params.truth_vcf    = "truth/HG002.SVs.vcf.gz"
-params.truth_bed    = "truth/HG002.bed"
-params.bench_params = "--passonly --giabreport --includebed ${params.truth_bed}"
-params.sq_lines     = "ref/sq_lines.txt"
+params.outdir       = "/results"
+params.reads        = "/reads/*.fq.gz"
+params.ref          = "/ref/chm13v2.0.fa"
+params.truth_vcf    = "/truth/GRCh38_HG2-T2TQ100-V1.1.vcf.gz"
+params.truth_bed    = "/truth/GRCh38_HG2-T2TQ100-V1.1_stvar.benchmark.bed"
+params.bench_params = "--passonly -r 1000 --dup-to-ins -p 0 --sizemax 50000}"
+params.sq_lines     = "./ref/sq_lines.txt"
 params.aligners     = ['bwa', 'minimap2', 'last', 'ngmlr', 'mmbwa']
 params.sv_callers   = ['sniffles', 'cutesv', 'dysgu', 'delly', 'sawfish']
-params.bed_reads    = "ref/bed_reads.bed"
-
+params.regions_bed  = "/ref/chm13v2.0_censat_v2.1.bed"
+params.dysgu_mode   = "nanopore-r10"
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     WORKFLOWS
@@ -59,48 +59,47 @@ workflow SETUP_WORKFLOW {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     ALIGNMENT
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+workflow ALIGNMENT {
+
+    take:
+        sample
+        ref
+        reads
+        sq_lines
+        threads
+
+    main:
+        Channel.from(params.aligners).cross(sample).set {sample_aligner}
+
+        sample_aligner.filter { aligner, s -> aligner == 'bwa' }
+                      .map    { aligner, s -> s } | RUN_BWA(ref, reads, threads)
+
+        sample_aligner.filter { aligner, s -> aligner == 'minimap2' }
+                      .map    { aligner, s -> s } | RUN_MINIMAP2(ref, reads, threads)
+
+        sample_aligner.filter { aligner, s -> aligner == 'last' }
+                      .map    { aligner, s -> s } | RUN_LAST(ref, reads, sq_lines, threads)
+        sample_aligner.filter { aligner, s -> aligner == 'ngmlr' }
+                      .map    { aligner, s -> s } | RUN_NGMLR(ref, reads, threads)
+
+        sample_aligner.filter { aligner, s -> aligner == 'vacmap' }
+                      .map    { aligner, s -> s } | RUN_VACMAP(ref, reads, threads)
+
+        sample_aligner.filter { aligner, s -> aligner == 'mmbwa' }
+                      .map    { aligner, s -> s } | RUN_MMBWA(ref, reads, threads)
+
+    emit:
+        alignments =
+            RUN_BWA.out      \
+            .mix(RUN_MINIMAP2.out)
+            .mix(RUN_LAST.out)
+            .mix(RUN_NGMLR.out)
+            .mix(RUN_VACMAP.out)
+            .mix(RUN_MMBWA.out)
+}
 */
-
-#workflow ALIGNMENT {
-#
-#    take:
-#        sample
-#        ref
-#        reads
-#        sq_lines
-#        threads
-#
-#    main:
-#        Channel.from(params.aligners).cross(sample).set {sample_aligner}
-#
-#        sample_aligner.filter { aligner, s -> aligner == 'bwa' }
-#                      .map    { aligner, s -> s } | RUN_BWA(ref, reads, threads)
-#
-#        sample_aligner.filter { aligner, s -> aligner == 'minimap2' }
-#                      .map    { aligner, s -> s } | RUN_MINIMAP2(ref, reads, threads)
-#
-#        sample_aligner.filter { aligner, s -> aligner == 'last' }
-#                      .map    { aligner, s -> s } | RUN_LAST(ref, reads, sq_lines, threads)
-#
-#        sample_aligner.filter { aligner, s -> aligner == 'ngmlr' }
-#                      .map    { aligner, s -> s } | RUN_NGMLR(ref, reads, threads)
-#
-#        sample_aligner.filter { aligner, s -> aligner == 'vacmap' }
-#                      .map    { aligner, s -> s } | RUN_VACMAP(ref, reads, threads)
-#
-#        sample_aligner.filter { aligner, s -> aligner == 'mmbwa' }
-#                      .map    { aligner, s -> s } | RUN_MMBWA(ref, reads, threads)
-#
-#    emit:
-#        alignments =
-#            RUN_BWA.out      \
-#            .mix(RUN_MINIMAP2.out)
-#            .mix(RUN_LAST.out)
-#            .mix(RUN_NGMLR.out)
-#            .mix(RUN_VACMAP.out)
-#            .mix(RUN_MMBWA.out)
-#}
-
 
 workflow ALIGNMENT {
 
@@ -142,7 +141,8 @@ workflow SV_CALLING {
 
     main:
         sv_callers = params.sv_callers ?: []
-        base = alignments.map { tuple(sample, aligner, bam, bai) -> tuple(ref, bam, bai, sample, aligner) }
+        base = alignments.map { tuple(sample, aligner, bam, bai)
+        -> tuple(ref, bam, bai, sample, aligner, params.platform, params.dysgu_mode) }
         branches =
             base.branch {
                 sniffles:sv_callers.contains('sniffles')

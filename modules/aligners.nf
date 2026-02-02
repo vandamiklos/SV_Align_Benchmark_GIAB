@@ -185,7 +185,7 @@ process RUN_MMBWA_FROM_MINIMAP2 {
     script:
     def preset = params.platform == 'ont' ? 'map-ont' : 'map-hifi'
     """
-    mmbwa --input-aln $aln -t $threads --mm-args $preset --bed_regions $bed_regions --output mmbwa_out $ref
+    mmbwa --input-aln $aln -t $threads --mm-args $preset --regions_bed $bed_regions --output mmbwa_out $ref
 
     samtools view -bh mmbwa_out/final.bam |
         samtools sort -o '${sample}.mmbwa.bam'

@@ -10,7 +10,9 @@ process RUN_SNIFFLES {
         path bam,
         path bai,
         val sample,
-        val aligner
+        val aligner,
+        val platform,
+        val dysgu_mode
     )
 
     output:
@@ -18,7 +20,7 @@ process RUN_SNIFFLES {
         val sample,
         val aligner,
         val 'sniffles',
-        path "${sample}.${aligner}.sniffles.vcf"
+        path "${sample}.${platform}.${aligner}.sniffles.vcf"
     ),
     emit: vcf
 
@@ -27,13 +29,12 @@ process RUN_SNIFFLES {
     sniffles \
         --threads ${task.cpus} \
         --input ${bam} \
-        --vcf ${sample}.${aligner}.sniffles.vcf
+        --vcf ${sample}.${platform}.${aligner}.sniffles.vcf
     """
 }
 
 process RUN_CUTESV {
-
-    tag "${sample}_${aligner}_cutesv"
+    tag "${aligner}_cutesv"
     publishDir "${params.outdir}/calls/cutesv", mode: 'copy'
     cpus { params.threads }
 
@@ -43,7 +44,9 @@ process RUN_CUTESV {
         path bam,
         path bai,
         val sample,
-        val aligner
+        val aligner,
+        val platform,
+        val dysgu_mode
     )
 
     output:
@@ -51,7 +54,7 @@ process RUN_CUTESV {
         val sample,
         val aligner,
         val 'cutesv',
-        path "${sample}.${aligner}.cutesv.vcf"
+        path "${sample}.$platform.${aligner}.cutesv.vcf"
     ),
     emit: vcf
 
@@ -60,10 +63,10 @@ process RUN_CUTESV {
     mkdir -p wd_cutesv
     cuteSV \
         --threads ${task.cpus} \
-        ${params.cutesv_opts ?: ''} \
+        -s 3 \
         ${bam} \
         ${ref} \
-        ${sample}.${aligner}.cutesv.vcf \
+        ${sample}.$platform.${aligner}.cutesv.vcf \
         wd_cutesv
     """
 }
@@ -80,7 +83,9 @@ process RUN_DYSGU {
         path bam,
         path bai,
         val sample,
-        val aligner
+        val aligner,
+        val platform,
+        val dysgu_mode
     )
 
     output:
@@ -88,19 +93,19 @@ process RUN_DYSGU {
         val sample,
         val aligner,
         val 'dysgu',
-        path "${sample}.${aligner}.dysgu.vcf"
+        path "${sample}.${platform}.${aligner}.dysgu.vcf"
     ),
     emit: vcf
 
     script:
-    def mode = params.caller_params[aligner]?.dysgu?.mode ?: 'pacbio'
+    def mode = params.platform.dysgu.mode
     """
     dysgu call \
-        --mode ${mode} \
+        --mode ${dysgu_mode} \
         --procs ${task.cpus} \
         -x --clean \
         ${ref} wd ${bam} \
-        > ${sample}.${aligner}.dysgu.vcf
+        > ${sample}.${platform}.${aligner}.dysgu.vcf
     """
 }
 
@@ -116,7 +121,9 @@ process RUN_DELLY {
         path bam,
         path bai,
         val sample,
-        val aligner
+        val aligner,
+        val platform,
+        val dysgu_mode
     )
 
     output:
@@ -124,7 +131,7 @@ process RUN_DELLY {
         val sample,
         val aligner,
         val 'delly',
-        path "${sample}.${aligner}.delly.vcf"
+        path "${sample}.${platform}.${aligner}.delly.vcf"
     ),
     emit: vcf
 
@@ -135,7 +142,7 @@ process RUN_DELLY {
         --technology ${tech} \
         -g ${ref} \
         ${bam} \
-        > ${sample}.${aligner}.delly.vcf
+        > ${sample}.${platform}.${aligner}.delly.vcf
     """
 }
 
@@ -151,7 +158,9 @@ process RUN_SAWFISH {
         path bam,
         path bai,
         val sample,
-        val aligner
+        val aligner,
+        val platform,
+        val dysgu_mode
     )
 
     when:
@@ -162,7 +171,7 @@ process RUN_SAWFISH {
         val sample,
         val aligner,
         val 'sawfish',
-        path "${sample}.${aligner}.sawfish.vcf"
+        path "${sample}.${platform}.${aligner}.sawfish.vcf"
     ),
     emit: vcf
 
@@ -180,7 +189,7 @@ process RUN_SAWFISH {
         --output-dir sawfish_call
 
     gunzip -c sawfish_call/genotyped.sv.vcf.gz \
-        > ${sample}.${aligner}.sawfish.vcf
+        > ${sample}.${platform}.${aligner}.sawfish.vcf
     """
 }
 

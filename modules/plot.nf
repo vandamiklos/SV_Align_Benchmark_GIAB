@@ -1,5 +1,3 @@
-#!/usr/bin/env nextflow
-
 process PLOT_RESULTS {
     publishDir "${params.outdir}/plots", mode: 'copy'
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env nextflow
-nextflow.enable.dsl=2
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -43,28 +42,19 @@ params.bench_params = "--passonly --giabreport --includebed ${params.truth_bed}"
 params.sq_lines     = "ref/sq_lines.txt"
 params.aligners     = ['bwa', 'minimap2', 'last', 'ngmlr', 'mmbwa']
 params.sv_callers   = ['sniffles', 'cutesv', 'dysgu', 'delly', 'sawfish']
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    CHANNELS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-
-Channel.fromPath(params.input_reads).set { read_files }
-Channel.value(file(params.ref)).set { ref }
-Channel.value(params.threads).set { threads }
+params.bed_reads    = "ref/bed_reads.bed"
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     WORKFLOWS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-
+/*
 workflow SETUP_WORKFLOW {
     main:
         SETUP()
 }
-
+*/
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     ALIGNMENT
@@ -119,6 +109,7 @@ workflow ALIGNMENT {
         ref
         reads
         threads
+        bed_regions
 
     main:
         minimap2_out = RUN_MINIMAP2(ref, reads, threads, sample)
@@ -126,7 +117,7 @@ workflow ALIGNMENT {
         mmbwa_from_mm2 =
             minimap2_out
                 .map { sample, aligner, bam, bai ->
-                    tuple(ref, bam, threads, sample)
+                    tuple(ref, bam, threads, sample, bed_regions)
                 }
                 | RUN_MMBWA_FROM_MINIMAP2
 
@@ -148,22 +139,17 @@ workflow SV_CALLING {
     take:
         ref
         alignments   // (sample, aligner, bam, bai)
-        versions = SETUP_WORKFLOW.out.versions
 
     main:
         sv_callers = params.sv_callers ?: []
-        base =
-            alignments
-                .map { tuple(sample, aligner, bam, bai) ->
-                    tuple(ref, bam, bai, versions, sample, aligner)
-                }
+        base = alignments.map { tuple(sample, aligner, bam, bai) -> tuple(ref, bam, bai, sample, aligner) }
         branches =
             base.branch {
                 sniffles:sv_callers.contains('sniffles')
                 cutesv:sv_callers.contains('cutesv')
                 dysgu:sv_callers.contains('dysgu')
-                delly:sv_callers.contains('delly') && it[5] != 'ngmlr'
-                sawfish:sv_callers.contains('sawfish') && it[5] in ['minimap2','mmbwa']
+                delly:sv_callers.contains('delly') && it[4] != 'ngmlr'
+                sawfish:sv_callers.contains('sawfish') && it[4] in ['minimap2','mmbwa']
             }
 
         if( sv_callers.contains('sniffles') )
@@ -200,6 +186,7 @@ workflow BENCHMARKING {
     take:
         ref
         sv_calls     // (sample, aligner, caller, vcf)
+        platform
 
     main:
         BENCHMARK(
@@ -209,8 +196,11 @@ workflow BENCHMARKING {
             file(params.truth_vcf + ".tbi"),
             file(params.truth_bed),
             SETUP_WORKFLOW.out.versions,
-            params.bench_params
+            params.bench_params,
+            params.platform
         )
+    emit:
+        out = benchmark_dir
 }
 
 
@@ -240,12 +230,26 @@ workflow PLOTTING {
 
 workflow {
 
-    SETUP_WORKFLOW()
+    /*
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        CHANNELS
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    */
+
+    Channel.fromPath(params.input_reads).set { read_files }
+    Channel.value(file(params.ref)).set { ref }
+    Channel.value(params.threads).set { threads }
+    Channel.fromPath(params.reads) .map { file -> file.baseName } .set { sample }
+    Channel.fromPath(params.bed_regions).set { bed_regions }
+
+    /*SETUP_WORKFLOW()*/
 
     ALIGNMENT(
+        sample: sample,
         ref: ref,
         reads: read_files,
-        threads: threads
+        threads: threads,
+        bed_regions: bed_regions
     )
 
     SV_CALLING(
@@ -258,8 +262,10 @@ workflow {
         sv_calls: SV_CALLING.out
     )
 
+    all_benchmarks = BENCHMARKING.out.collect()
+
     PLOTTING(
-        benchmark_dir: file("${params.outdir}/benchmarks")
+        benchmark_dir: all_benchmarks
     )
 }
 

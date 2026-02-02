@@ -1,17 +1,14 @@
-#!/usr/bin/env nextflow
-nextflow.enable.dsl = 2
-
 process RUN_SNIFFLES {
 
     tag "${sample}_${aligner}_sniffles"
     publishDir "${params.outdir}/calls/sniffles", mode: 'copy'
+    cpus { params.threads }
 
     input:
     tuple(
         path ref,
         path bam,
         path bai,
-        val versions,
         val sample,
         val aligner
     )
@@ -21,7 +18,7 @@ process RUN_SNIFFLES {
         val sample,
         val aligner,
         val 'sniffles',
-        path "${sample}.${aligner}.sniffles_${versions.sniffles}.vcf"
+        path "${sample}.${aligner}.sniffles.vcf"
     ),
     emit: vcf
 
@@ -30,7 +27,7 @@ process RUN_SNIFFLES {
     sniffles \
         --threads ${task.cpus} \
         --input ${bam} \
-        --vcf ${sample}.${aligner}.sniffles_${versions.sniffles}.vcf
+        --vcf ${sample}.${aligner}.sniffles.vcf
     """
 }
 
@@ -38,13 +35,13 @@ process RUN_CUTESV {
 
     tag "${sample}_${aligner}_cutesv"
     publishDir "${params.outdir}/calls/cutesv", mode: 'copy'
+    cpus { params.threads }
 
     input:
     tuple(
         path ref,
         path bam,
         path bai,
-        val versions,
         val sample,
         val aligner
     )
@@ -54,7 +51,7 @@ process RUN_CUTESV {
         val sample,
         val aligner,
         val 'cutesv',
-        path "${sample}.${aligner}.cutesv_${versions.cutesv}.vcf"
+        path "${sample}.${aligner}.cutesv.vcf"
     ),
     emit: vcf
 
@@ -66,7 +63,7 @@ process RUN_CUTESV {
         ${params.cutesv_opts ?: ''} \
         ${bam} \
         ${ref} \
-        ${sample}.${aligner}.cutesv_${versions.cutesv}.vcf \
+        ${sample}.${aligner}.cutesv.vcf \
         wd_cutesv
     """
 }
@@ -75,13 +72,13 @@ process RUN_DYSGU {
 
     tag "${sample}_${aligner}_dysgu"
     publishDir "${params.outdir}/calls/dysgu", mode: 'copy'
+    cpus { params.threads }
 
     input:
     tuple(
         path ref,
         path bam,
         path bai,
-        val versions,
         val sample,
         val aligner
     )
@@ -91,7 +88,7 @@ process RUN_DYSGU {
         val sample,
         val aligner,
         val 'dysgu',
-        path "${sample}.${aligner}.dysgu_${versions.dysgu}.vcf"
+        path "${sample}.${aligner}.dysgu.vcf"
     ),
     emit: vcf
 
@@ -103,7 +100,7 @@ process RUN_DYSGU {
         --procs ${task.cpus} \
         -x --clean \
         ${ref} wd ${bam} \
-        > ${sample}.${aligner}.dysgu_${versions.dysgu}.vcf
+        > ${sample}.${aligner}.dysgu.vcf
     """
 }
 
@@ -111,13 +108,13 @@ process RUN_DELLY {
 
     tag "${sample}_${aligner}_delly"
     publishDir "${params.outdir}/calls/delly", mode: 'copy'
+    cpus { params.threads }
 
     input:
     tuple(
         path ref,
         path bam,
         path bai,
-        val versions,
         val sample,
         val aligner
     )
@@ -127,7 +124,7 @@ process RUN_DELLY {
         val sample,
         val aligner,
         val 'delly',
-        path "${sample}.${aligner}.delly_${versions.delly}.vcf"
+        path "${sample}.${aligner}.delly.vcf"
     ),
     emit: vcf
 
@@ -138,7 +135,7 @@ process RUN_DELLY {
         --technology ${tech} \
         -g ${ref} \
         ${bam} \
-        > ${sample}.${aligner}.delly_${versions.delly}.vcf
+        > ${sample}.${aligner}.delly.vcf
     """
 }
 
@@ -146,13 +143,13 @@ process RUN_SAWFISH {
 
     tag "${sample}_sawfish"
     publishDir "${params.outdir}/calls/sawfish", mode: 'copy'
+    cpus { params.threads }
 
     input:
     tuple(
         path ref,
         path bam,
         path bai,
-        val versions,
         val sample,
         val aligner
     )
@@ -165,7 +162,7 @@ process RUN_SAWFISH {
         val sample,
         val aligner,
         val 'sawfish',
-        path "${sample}.${aligner}.sawfish_${versions.sawfish}.vcf"
+        path "${sample}.${aligner}.sawfish.vcf"
     ),
     emit: vcf
 
@@ -183,7 +180,7 @@ process RUN_SAWFISH {
         --output-dir sawfish_call
 
     gunzip -c sawfish_call/genotyped.sv.vcf.gz \
-        > ${sample}.${aligner}.sawfish_${versions.sawfish}.vcf
+        > ${sample}.${aligner}.sawfish.vcf
     """
 }
 

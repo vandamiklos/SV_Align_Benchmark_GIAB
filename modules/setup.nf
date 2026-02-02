@@ -1,5 +1,4 @@
-#!/usr/bin/env nextflow
-process SETUP {
+/*process SETUP {
     publishDir params.outdir, mode: 'symlink'
     conda "$projectDir/environment.yml"
 
@@ -66,4 +65,4 @@ process SETUP {
     }
 EOF
     """
-}
+} */

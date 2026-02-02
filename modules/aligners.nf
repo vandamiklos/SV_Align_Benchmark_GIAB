@@ -1,5 +1,3 @@
-#!/usr/bin/env nextflow
-
 process RUN_BWA {
 
     publishDir "${params.outdir}/alignment/bwa", mode: 'copy'
@@ -179,6 +177,7 @@ process RUN_MMBWA_FROM_MINIMAP2 {
         path aln
         val threads
         val sample
+        path bed_regions
 
     output:
         tuple val(sample), val('mmbwa'), path("${sample}.mmbwa.bam"), path("${sample}.mmbwa.bam.bai")
@@ -186,7 +185,7 @@ process RUN_MMBWA_FROM_MINIMAP2 {
     script:
     def preset = params.platform == 'ont' ? 'map-ont' : 'map-hifi'
     """
-    mmbwa --input-aln $aln -t $threads --mm-args $preset --output mmbwa_out $ref
+    mmbwa --input-aln $aln -t $threads --mm-args $preset --bed_regions $bed_regions --output mmbwa_out $ref
 
     samtools view -bh mmbwa_out/final.bam |
         samtools sort -o '${sample}.mmbwa.bam'

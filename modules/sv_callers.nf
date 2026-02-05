@@ -1,37 +1,27 @@
+/*
+SV CALLERS
+*/
 process RUN_SNIFFLES {
 
-    tag "${sample}_${aligner}_sniffles"
     publishDir "${params.outdir}/calls/sniffles", mode: 'copy'
+    tag "${sample}_${aligner}_sniffles"
     cpus { params.threads }
 
     input:
-    tuple(
-        path ref,
-        path bam,
-        path bai,
-        val sample,
-        val aligner,
-        val platform,
-        val dysgu_mode
-    )
+        path(ref)
+        tuple val(sample), val(aligner), path(bam), path(bai)
+        val(platform)
 
     output:
-    tuple(
-        val sample,
-        val aligner,
-        val 'sniffles',
-        path "${sample}.${platform}.${aligner}.sniffles.vcf"
-    ),
-    emit: vcf
+        tuple val(sample), val(aligner), val(platform), val('sniffles'), path("${sample}.${platform}.${aligner}.sniffles.vcf")
 
     script:
     """
-    sniffles \
-        --threads ${task.cpus} \
-        --input ${bam} \
-        --vcf ${sample}.${platform}.${aligner}.sniffles.vcf
+    sniffles --threads ${task.cpus} --input ${bam} --vcf ${sample}.${platform}.${aligner}.sniffles.vcf
     """
 }
+
+
 
 process RUN_CUTESV {
     tag "${aligner}_cutesv"
@@ -39,24 +29,12 @@ process RUN_CUTESV {
     cpus { params.threads }
 
     input:
-    tuple(
-        path ref,
-        path bam,
-        path bai,
-        val sample,
-        val aligner,
-        val platform,
-        val dysgu_mode
-    )
+        path(ref)
+        tuple val(sample), val(aligner), path(bam), path(bai)
+        val(platform)
 
     output:
-    tuple(
-        val sample,
-        val aligner,
-        val 'cutesv',
-        path "${sample}.$platform.${aligner}.cutesv.vcf"
-    ),
-    emit: vcf
+        tuple val(sample), val(aligner), val(platform), val('cutesv'), path("${sample}.$platform.${aligner}.cutesv.vcf")
 
     script:
     """
@@ -78,27 +56,15 @@ process RUN_DYSGU {
     cpus { params.threads }
 
     input:
-    tuple(
-        path ref,
-        path bam,
-        path bai,
-        val sample,
-        val aligner,
-        val platform,
-        val dysgu_mode
-    )
+        path(ref)
+        tuple val(sample), val(aligner), path(bam), path(bai)
+        val(platform)
+        val(dysgu_mode)
 
     output:
-    tuple(
-        val sample,
-        val aligner,
-        val 'dysgu',
-        path "${sample}.${platform}.${aligner}.dysgu.vcf"
-    ),
-    emit: vcf
+        tuple val(sample), val(aligner), val(platform), val('dysgu'), path("${sample}.${platform}.${aligner}.dysgu.vcf")
 
     script:
-    def mode = params.platform.dysgu.mode
     """
     dysgu call \
         --mode ${dysgu_mode} \
@@ -116,33 +82,17 @@ process RUN_DELLY {
     cpus { params.threads }
 
     input:
-    tuple(
-        path ref,
-        path bam,
-        path bai,
-        val sample,
-        val aligner,
-        val platform,
-        val dysgu_mode
-    )
+    path(ref)
+    tuple val(sample), val(aligner), path(bam), path(bai)
+    val(platform)
 
     output:
-    tuple(
-        val sample,
-        val aligner,
-        val 'delly',
-        path "${sample}.${platform}.${aligner}.delly.vcf"
-    ),
-    emit: vcf
+        tuple val(sample), val(aligner), val(platform), val('delly'), path("${sample}.${platform}.${aligner}.delly.vcf")
 
     script:
-    def tech = params.caller_params[aligner]?.delly?.tech ?: 'ONT'
     """
-    delly lr \
-        --technology ${tech} \
-        -g ${ref} \
-        ${bam} \
-        > ${sample}.${platform}.${aligner}.delly.vcf
+    delly lr -g ${ref} \
+        ${bam} > ${sample}.${platform}.${aligner}.delly.vcf
     """
 }
 
@@ -153,27 +103,15 @@ process RUN_SAWFISH {
     cpus { params.threads }
 
     input:
-    tuple(
-        path ref,
-        path bam,
-        path bai,
-        val sample,
-        val aligner,
-        val platform,
-        val dysgu_mode
-    )
+    path(ref)
+    tuple val(sample), val(aligner), path(bam), path(bai)
+    val(platform)
 
     when:
-    aligner == 'pacbio'
+        platform == 'pacbio'
 
     output:
-    tuple(
-        val sample,
-        val aligner,
-        val 'sawfish',
-        path "${sample}.${platform}.${aligner}.sawfish.vcf"
-    ),
-    emit: vcf
+        tuple val(sample), val(aligner), val(platform), val('sawfish'), path("${sample}.${platform}.${aligner}.sawfish.vcf")
 
     script:
     """
@@ -192,4 +130,3 @@ process RUN_SAWFISH {
         > ${sample}.${platform}.${aligner}.sawfish.vcf
     """
 }
-

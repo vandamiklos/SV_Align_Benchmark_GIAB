@@ -77,7 +77,7 @@ For benchmarking [truvari v5.2](https://github.com/ACEnglish/truvari) was used.
 
 ```bash
 bash fetch_data.sh
-nextflow main.nf
+nextflow run pipeline.nf
 ```
 
 ## Notes
